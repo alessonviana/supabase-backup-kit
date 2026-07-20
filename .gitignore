@@ -1,0 +1,11 @@
+# Never commit backups, keys or secrets to this PUBLIC repository.
+*.sql
+*.sql.gz
+*.age
+*.key
+backup-out/
+restore-in/
+verify-in/
+*.env
+.env
+.dev.vars
