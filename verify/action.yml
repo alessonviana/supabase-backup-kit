@@ -1,0 +1,40 @@
+name: "Supabase backup verify"
+description: "Restore a backup into an ephemeral Postgres and assert expected tables exist."
+author: "supabase-backup-kit"
+
+inputs:
+  backup_file:
+    description: "Path to a *.sql.gz.age backup file on the runner."
+    required: true
+  age_identity:
+    description: "age private key contents (AGE-SECRET-KEY-...). SENSITIVE — pass a secret."
+    required: true
+  pg_url:
+    description: "Connection string of a throwaway Postgres (e.g. a service container)."
+    required: true
+  expected_tables:
+    description: "Space/comma separated public tables that MUST exist after restore."
+    required: true
+  nonempty_tables:
+    description: "Optional subset that MUST have at least one row."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install age + postgresql-client
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq age postgresql-client
+
+    - name: Run verify
+      shell: bash
+      env:
+        BACKUP_FILE: ${{ inputs.backup_file }}
+        AGE_IDENTITY: ${{ inputs.age_identity }}
+        PG_URL: ${{ inputs.pg_url }}
+        EXPECTED_TABLES: ${{ inputs.expected_tables }}
+        NONEMPTY_TABLES: ${{ inputs.nonempty_tables }}
+      run: bash "$GITHUB_ACTION_PATH/../scripts/verify.sh"

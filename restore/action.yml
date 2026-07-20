@@ -1,0 +1,37 @@
+name: "Supabase backup restore"
+description: "Decrypt an age-encrypted backup and restore it into a target database (or dry-run)."
+author: "supabase-backup-kit"
+
+inputs:
+  backup_file:
+    description: "Path to a *.sql.gz.age backup file on the runner."
+    required: true
+  age_identity:
+    description: "age private key contents (AGE-SECRET-KEY-...). SENSITIVE — pass a secret."
+    required: true
+  restore_target_db_url:
+    description: "Target DB connection string. SENSITIVE. Required unless dry_run=true."
+    required: false
+    default: ""
+  dry_run:
+    description: "If true, only decrypt + summarize; never touch a database."
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install age + postgresql-client
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq age postgresql-client
+
+    - name: Run restore
+      shell: bash
+      env:
+        BACKUP_FILE: ${{ inputs.backup_file }}
+        AGE_IDENTITY: ${{ inputs.age_identity }}
+        RESTORE_TARGET_DB_URL: ${{ inputs.restore_target_db_url }}
+        DRY_RUN: ${{ inputs.dry_run == 'true' && '1' || '0' }}
+      run: bash "$GITHUB_ACTION_PATH/../scripts/restore.sh"

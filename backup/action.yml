@@ -1,0 +1,54 @@
+name: "Supabase encrypted backup"
+description: "Dump a Supabase Postgres DB, compress, encrypt with age, and upload as an artifact."
+author: "supabase-backup-kit"
+
+inputs:
+  supabase_db_url:
+    description: "Pooler (session mode) connection string. SENSITIVE — pass a secret."
+    required: true
+  age_recipient:
+    description: "age public key(s) (age1...), one per line."
+    required: true
+  backup_prefix:
+    description: "Artifact filename prefix, e.g. the project slug."
+    required: true
+  retention_days:
+    description: "Artifact retention in days."
+    required: false
+    default: "7"
+  supabase_cli_version:
+    description: "Supabase CLI version to use."
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install age
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq age
+
+    - name: Setup Supabase CLI
+      uses: supabase/setup-cli@v1
+      with:
+        version: ${{ inputs.supabase_cli_version }}
+
+    - name: Run backup
+      id: backup
+      shell: bash
+      env:
+        SUPABASE_DB_URL: ${{ inputs.supabase_db_url }}
+        AGE_RECIPIENT: ${{ inputs.age_recipient }}
+        BACKUP_PREFIX: ${{ inputs.backup_prefix }}
+        OUTPUT_DIR: ${{ runner.temp }}/backup-out
+      run: bash "$GITHUB_ACTION_PATH/../scripts/backup.sh"
+
+    - name: Upload encrypted backup artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.backup.outputs.artifact_name }}
+        path: ${{ steps.backup.outputs.artifact_path }}
+        retention-days: ${{ inputs.retention_days }}
+        if-no-files-found: error
