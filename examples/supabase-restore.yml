@@ -1,0 +1,57 @@
+# Copy to <your-project>/.github/workflows/supabase-restore.yml
+# Disaster-recovery restore. MANUAL only, with a typed confirmation and a
+# dry-run default so it can never overwrite a database by accident.
+name: Supabase Restore (manual DR)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID of the backup workflow that produced the artifact"
+        required: true
+      artifact_name:
+        description: "Artifact name (…sql.gz.age)"
+        required: true
+      target:
+        description: "Target environment"
+        type: choice
+        options: [staging, prod]
+        required: true
+      confirm:
+        description: "Type RESTORE-<target> (e.g. RESTORE-prod) to confirm"
+        required: true
+      dry_run:
+        description: "Dry run (decrypt + summarize only, no writes)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        run: |
+          expected="RESTORE-${{ inputs.target }}"
+          if [ "${{ inputs.confirm }}" != "$expected" ]; then
+            echo "::error::Confirmation mismatch. Expected '$expected'."
+            exit 1
+          fi
+
+      - name: Download backup artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./restore-in
+
+      - uses: alessonviana/supabase-backup-kit/restore@v1
+        with:
+          backup_file:           ./restore-in/${{ inputs.artifact_name }}
+          age_identity:          ${{ secrets.AGE_SECRET_KEY }}
+          restore_target_db_url: ${{ inputs.target == 'prod' && secrets.RESTORE_PROD_DB_URL || secrets.RESTORE_STAGING_DB_URL }}
+          dry_run:               ${{ inputs.dry_run }}
