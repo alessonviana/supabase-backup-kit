@@ -26,7 +26,7 @@ command -v age >/dev/null || die "age not found"
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
-# Roles first, then schema (may GRANT to roles), then data — restore-safe order.
+# Roles first, then schema (may GRANT to roles), then data (restore-safe order).
 log "Dumping roles..."
 supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f "$workdir/roles.sql"
 log "Dumping schema..."

@@ -68,5 +68,5 @@ for t in $(norm "${NONEMPTY_TABLES:-}"); do
   fi
 done
 
-[ "$fail" -eq 0 ] || die "VERIFICATION FAILED — investigate the latest backup"
-log "VERIFICATION PASSED — backup is restorable and contains expected tables."
+[ "$fail" -eq 0 ] || die "VERIFICATION FAILED: investigate the latest backup"
+log "VERIFICATION PASSED: backup is restorable and contains expected tables."

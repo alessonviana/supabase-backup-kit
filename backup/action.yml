@@ -4,7 +4,7 @@ author: "supabase-backup-kit"
 
 inputs:
   supabase_db_url:
-    description: "Pooler (session mode) connection string. SENSITIVE — pass a secret."
+    description: "Pooler (session mode) connection string. SENSITIVE. Pass a secret."
     required: true
   age_recipient:
     description: "age public key(s) (age1...), one per line."

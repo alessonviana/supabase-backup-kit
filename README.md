@@ -4,11 +4,11 @@ Reusable, encrypted **backup / restore / verify** pipeline for **Supabase Postgr
 on the free tier** (no PITR, no managed backups), driven entirely by **GitHub
 Actions**. Built to be dropped into any project in minutes.
 
-- 🔒 **Encrypted at rest** with [age](https://github.com/FiloSottile/age) (asymmetric — the backup job never holds the private key)
+- 🔒 **Encrypted at rest** with [age](https://github.com/FiloSottile/age) (asymmetric, so the backup job never holds the private key)
 - 🗓️ **Daily backups** stored as GitHub Actions artifacts (auto-expiring = free cleanup)
 - ♻️ **Disaster recovery** via a guarded manual workflow (typed confirmation + dry-run)
-- ✅ **Monthly restore test** into an ephemeral Postgres — *a backup is only good if it restores*
-- 📦 **Public & generic** — zero secrets or project values live here
+- ✅ **Monthly restore test** into an ephemeral Postgres (*a backup is only good if it restores*)
+- 📦 **Public & generic**: zero secrets or project values live here
 
 > Why GitHub Actions + artifacts? The scheduler, compute and storage are all free
 > within the GitHub plan, there's no extra service to run, and `retention-days`
@@ -18,7 +18,7 @@ Actions**. Built to be dropped into any project in minutes.
 
 ![How supabase-backup-kit works](assets/supabase-backup-kit.png)
 
-This kit is **not vendored into your project** — your private repo only holds thin
+This kit is **not vendored into your project**; your private repo only holds thin
 workflow files that reference the actions remotely (`uses: alessonviana/supabase-backup-kit/<action>@v1`).
 GitHub fetches the kit at run time; your secrets never leave your repo.
 
@@ -30,7 +30,7 @@ private key.
 ## Requirements
 
 - A Supabase project (any tier).
-- The **pooler (session mode) connection string** — GitHub runners are IPv4 and
+- The **pooler (session mode) connection string**: GitHub runners are IPv4 and
   Supabase direct connections are IPv6-only, so the pooler is mandatory:
   `postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`
   (Supabase Dashboard → Project Settings → Database → *Connection string* → **Session pooler**).
@@ -56,7 +56,7 @@ age-keygen -o age-key.txt
 | `RESTORE_PROD_DB_URL` | secret | pooler URL of production (used only by the guarded restore) |
 
 > Store `age-key.txt` **offline as well** (password manager / vault). Without the
-> private key, backups are unrecoverable — that is the whole point of encryption.
+> private key, backups are unrecoverable; that is the whole point of encryption.
 
 **3. Copy the three workflows** from [`examples/`](examples/) into your repo's
 `.github/workflows/`, edit the `backup_prefix`, `expected_tables`, cron times, and
@@ -64,7 +64,7 @@ pin `@v1` to your chosen ref. Done.
 
 ## The three actions
 
-### `backup` — daily encrypted backup
+### `backup`: daily encrypted backup
 ```yaml
 - uses: alessonviana/supabase-backup-kit/backup@v1
   with:
@@ -74,7 +74,7 @@ pin `@v1` to your chosen ref. Done.
     retention_days:  7
 ```
 
-### `verify` — restore into ephemeral Postgres + smoke checks
+### `verify`: restore into ephemeral Postgres + smoke checks
 Requires a `postgres` **service container** in the calling job (see the example).
 ```yaml
 - uses: alessonviana/supabase-backup-kit/verify@v1
@@ -86,7 +86,7 @@ Requires a `postgres` **service container** in the calling job (see the example)
     nonempty_tables: ""     # optional
 ```
 
-### `restore` — disaster recovery (guarded, manual)
+### `restore`: disaster recovery (guarded, manual)
 ```yaml
 - uses: alessonviana/supabase-backup-kit/restore@v1
   with:
@@ -108,7 +108,7 @@ psql "$RESTORE_TARGET_DB_URL" -v ON_ERROR_STOP=1 -f backup.sql
 
 - **Artifact retention ≤ 90 days** and counts against the repo's Actions storage
   quota (500 MB on Free). Fine for small DBs. For long-term retention, swap the
-  `upload-artifact` step for an upload to object storage (e.g. **Cloudflare R2**) —
+  `upload-artifact` step for an upload to object storage (e.g. **Cloudflare R2**);
   the dump/encryption logic is unchanged.
 - **GitHub is a single storage location.** For a real off-site copy, periodically
   download the latest `.age` to a separate vault, or move to R2/S3.

@@ -1,6 +1,6 @@
 # Security model
 
-This repository is **public** and contains **only logic** — no credentials, keys,
+This repository is **public** and contains **only logic**: no credentials, keys,
 project references or backups. Everything sensitive lives in the settings of the
 private repository that consumes this kit.
 
