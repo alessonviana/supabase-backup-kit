@@ -21,9 +21,17 @@ END $$;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Supabase installs extensions into a dedicated "extensions" schema; create it so
+-- statements like: CREATE EXTENSION ... WITH SCHEMA "extensions" can restore.
+CREATE SCHEMA IF NOT EXISTS extensions;
+
 -- Stub schemas/tables that public objects commonly reference via FK/GRANT.
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE SCHEMA IF NOT EXISTS storage;
+CREATE SCHEMA IF NOT EXISTS graphql;
+CREATE SCHEMA IF NOT EXISTS graphql_public;
+CREATE SCHEMA IF NOT EXISTS realtime;
+CREATE SCHEMA IF NOT EXISTS vault;
 CREATE TABLE IF NOT EXISTS auth.users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid()
 );
