@@ -1,9 +1,9 @@
 # Copy to <your-project>/.github/workflows/supabase-backup-verify.yml
-name: Supabase Backup Verify (monthly)
+name: Supabase Backup Verify (weekly)
 
 on:
   schedule:
-    - cron: "0 7 1 * *"   # 07:00 UTC on the 1st of each month
+    - cron: "0 7 * * 6"   # 07:00 UTC every Saturday (edit to change the day/time)
   workflow_dispatch:
 
 permissions:
@@ -28,9 +28,11 @@ jobs:
       - name: Find latest backup artifact
         id: find
         uses: actions/github-script@v7
+        env:
+          PREFIX: ${{ vars.BACKUP_PREFIX || 'my-project' }}   # <-- must match backup_prefix
         with:
           script: |
-            const prefix = 'my-project';   // <-- edit to match backup_prefix
+            const prefix = process.env.PREFIX;
             const arts = await github.paginate(
               github.rest.actions.listArtifactsForRepo,
               { owner: context.repo.owner, repo: context.repo.repo, per_page: 100 }
@@ -55,5 +57,6 @@ jobs:
           backup_file:     ./verify-in/${{ steps.find.outputs.name }}
           age_identity:    ${{ secrets.AGE_SECRET_KEY }}
           pg_url:          postgresql://postgres:postgres@localhost:5432/verify
-          expected_tables: "sales products"   # <-- edit
-          nonempty_tables: ""
+          # Driven by repository Variables, with defaults if unset.
+          expected_tables: ${{ vars.VERIFY_EXPECTED_TABLES || 'sales products' }}   # <-- edit default
+          nonempty_tables: ${{ vars.VERIFY_NONEMPTY_TABLES || '' }}

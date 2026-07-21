@@ -21,5 +21,8 @@ jobs:
         with:
           supabase_db_url: ${{ secrets.SUPABASE_DB_URL }}
           age_recipient:   ${{ vars.AGE_PUBLIC_KEY }}
-          backup_prefix:   my-project      # <-- edit
-          retention_days:  7
+          # Driven by repository Variables, with defaults if unset.
+          # Note: the schedule (cron) above cannot be a variable (GitHub limitation),
+          # so edit it directly to change the backup time.
+          backup_prefix:   ${{ vars.BACKUP_PREFIX || 'my-project' }}      # <-- edit default
+          retention_days:  ${{ vars.BACKUP_RETENTION_DAYS || '7' }}

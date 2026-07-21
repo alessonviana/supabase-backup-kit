@@ -59,8 +59,24 @@ age-keygen -o age-key.txt
 > private key, backups are unrecoverable; that is the whole point of encryption.
 
 **3. Copy the three workflows** from [`examples/`](examples/) into your repo's
-`.github/workflows/`, edit the `backup_prefix`, `expected_tables`, cron times, and
-pin `@v1` to your chosen ref. Done.
+`.github/workflows/`, set the cron times, and pin `@v1` to your chosen ref. Done.
+
+## Configuration via repository Variables (optional)
+
+The example workflows read these **optional** repository Variables and fall back to
+sensible defaults when they are unset, so you can tune behavior without editing YAML:
+
+| Variable | Drives | Default |
+|----------|--------|---------|
+| `BACKUP_PREFIX` | backup artifact name (and the verify lookup) | `my-project` |
+| `BACKUP_RETENTION_DAYS` | how long artifacts are kept (max 90) | `7` |
+| `VERIFY_EXPECTED_TABLES` | tables the verify job asserts exist | (per project) |
+| `VERIFY_NONEMPTY_TABLES` | tables that must have at least one row | (empty) |
+
+> **The schedule is the one thing Variables cannot drive.** GitHub does not allow
+> expressions in `on.schedule.cron`, so the backup time and the verify day/frequency
+> live as literal `cron` lines in each workflow. Editing that one line is the
+> per-project schedule knob (e.g. `0 7 * * 6` for every Saturday at 07:00 UTC).
 
 ## The three actions
 
