@@ -1,5 +1,7 @@
 # Never commit backups, keys or secrets to this PUBLIC repository.
 *.sql
+# bootstrap-roles.sql is a source file, not a backup dump:
+!scripts/bootstrap-roles.sql
 *.sql.gz
 *.age
 *.key
