@@ -6,6 +6,7 @@ Actions**. Built to be dropped into any project in minutes.
 
 - 🔒 **Encrypted at rest** with [age](https://github.com/FiloSottile/age) (asymmetric, so the backup job never holds the private key)
 - 🗓️ **Daily backups** stored as GitHub Actions artifacts (auto-expiring = free cleanup)
+- 🌍 **Optional off-site copy** to any S3-compatible bucket with Object Lock (free tiers: Backblaze B2 / Cloudflare R2) — see [Off-site copy](docs/OFF-SITE.md)
 - ♻️ **Disaster recovery** via a guarded manual workflow (typed confirmation + dry-run)
 - ✅ **Monthly restore test** into an ephemeral Postgres (*a backup is only good if it restores*)
 - 📦 **Public & generic**: zero secrets or project values live here
@@ -72,7 +73,14 @@ sensible defaults when they are unset, so you can tune behavior without editing 
 | `BACKUP_RETENTION_DAYS` | how long artifacts are kept (max 90) | `7` |
 | `VERIFY_EXPECTED_TABLES` | tables the verify job asserts exist | (per project) |
 | `VERIFY_NONEMPTY_TABLES` | tables that must have at least one row | (empty) |
+| `BACKUP_S3_BUCKET` | off-site bucket (empty = off-site disabled) | (empty) |
+| `BACKUP_S3_ENDPOINT` | S3 endpoint (empty = AWS S3) | (empty) |
+| `BACKUP_S3_REGION` | off-site region (`auto` for R2) | `auto` |
+| `BACKUP_S3_PREFIX` | key prefix inside the bucket | (empty) |
 
+> The off-site copy also needs two **secrets** (`BACKUP_S3_ACCESS_KEY_ID`,
+> `BACKUP_S3_SECRET_ACCESS_KEY`). It is fully optional. See [Off-site copy](docs/OFF-SITE.md).
+>
 > **The schedule is the one thing Variables cannot drive.** GitHub does not allow
 > expressions in `on.schedule.cron`, so the backup time and the verify day/frequency
 > live as literal `cron` lines in each workflow. Editing that one line is the
@@ -126,8 +134,10 @@ psql "$RESTORE_TARGET_DB_URL" -v ON_ERROR_STOP=1 -f backup.sql
   quota (500 MB on Free). Fine for small DBs. For long-term retention, swap the
   `upload-artifact` step for an upload to object storage (e.g. **Cloudflare R2**);
   the dump/encryption logic is unchanged.
-- **GitHub is a single storage location.** For a real off-site copy, periodically
-  download the latest `.age` to a separate vault, or move to R2/S3.
+- **GitHub artifacts are ephemeral and deletable.** Anyone with `actions: write`
+  (or the account itself) can delete them, and they auto-expire. For resilience
+  against account compromise / ransomware, enable the optional immutable
+  [off-site copy](docs/OFF-SITE.md) (free tiers: Backblaze B2 / Cloudflare R2).
 - **Verify uses a vanilla Postgres.** `bootstrap-roles.sql` stubs common Supabase
   roles/extensions; extend it if your schema needs more (postgis, pg_trgm, …).
 

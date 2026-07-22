@@ -17,6 +17,19 @@ private repository that consumes this kit.
 - **No secrets in this repo.** Enforced by `.gitignore` (blocks `*.age`, `*.key`,
   `*.sql`, `.env`, ...). Do not add real connection strings to examples.
 
+## Availability (deletion / ransomware)
+
+Encryption protects confidentiality, not availability. GitHub artifacts are
+**mutable, deletable and ephemeral**: any identity with `actions: write` (a leaked
+PAT, a malicious workflow, or the account/org itself) can delete them, and they
+auto-expire. GitHub is also a **single** location.
+
+The optional [off-site copy](docs/OFF-SITE.md) closes this gap: it mirrors each
+encrypted backup to an S3-compatible bucket with **Object Lock** (WORM), written by
+a **write-only** key. A full compromise of the consumer repo can then neither read
+the backups (no age private key) nor delete the off-site copies (Object Lock + a key
+with no delete permission). Free, immutable providers: Backblaze B2, Cloudflare R2.
+
 ## Reporting a vulnerability
 
 Open a private security advisory on this repository, or contact the maintainer

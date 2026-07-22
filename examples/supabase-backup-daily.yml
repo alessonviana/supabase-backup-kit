@@ -26,3 +26,16 @@ jobs:
           # so edit it directly to change the backup time.
           backup_prefix:   ${{ vars.BACKUP_PREFIX || 'my-project' }}      # <-- edit default
           retention_days:  ${{ vars.BACKUP_RETENTION_DAYS || '7' }}
+
+          # --- Optional off-site copy (S3-compatible). Leave S3_BUCKET unset to disable. ---
+          # Any S3-compatible storage works. Free + immutable options:
+          #   Backblaze B2  -> s3_endpoint: https://s3.us-west-004.backblazeb2.com  (region: us-west-004)
+          #   Cloudflare R2 -> s3_endpoint: https://<account>.r2.cloudflarestorage.com (region: auto)
+          # Turn on Object Lock on the bucket and use a WRITE-ONLY key so a
+          # compromised repo can neither read nor delete the off-site copies.
+          s3_bucket:            ${{ vars.BACKUP_S3_BUCKET }}
+          s3_endpoint:          ${{ vars.BACKUP_S3_ENDPOINT }}
+          s3_region:            ${{ vars.BACKUP_S3_REGION || 'auto' }}
+          s3_prefix:            ${{ vars.BACKUP_S3_PREFIX }}
+          s3_access_key_id:     ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          s3_secret_access_key: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}

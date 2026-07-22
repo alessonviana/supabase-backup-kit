@@ -20,6 +20,31 @@ inputs:
     description: "Supabase CLI version to use."
     required: false
     default: "latest"
+  # --- Optional off-site copy (S3-compatible). Leave s3_bucket empty to disable. ---
+  s3_bucket:
+    description: "S3-compatible bucket for an off-site copy. Empty = disabled."
+    required: false
+    default: ""
+  s3_endpoint:
+    description: "Custom S3 endpoint URL (B2/R2/Wasabi/MinIO). Empty = real AWS S3."
+    required: false
+    default: ""
+  s3_region:
+    description: "Region ('auto' for R2; real region for B2/S3)."
+    required: false
+    default: "auto"
+  s3_prefix:
+    description: "Key prefix inside the bucket, e.g. 'backups/'."
+    required: false
+    default: ""
+  s3_access_key_id:
+    description: "S3 access key id. SENSITIVE. Prefer a WRITE-ONLY key (no delete)."
+    required: false
+    default: ""
+  s3_secret_access_key:
+    description: "S3 secret access key. SENSITIVE. Pass a secret."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -52,3 +77,30 @@ runs:
         path: ${{ steps.backup.outputs.artifact_path }}
         retention-days: ${{ inputs.retention_days }}
         if-no-files-found: error
+
+    # Off-site copy: only runs when s3_bucket is set. The GitHub artifact above
+    # is already secured before this step, so a misconfigured bucket fails loudly
+    # without losing the primary copy.
+    - name: Ensure AWS CLI (off-site upload)
+      if: inputs.s3_bucket != ''
+      shell: bash
+      run: |
+        if ! command -v aws >/dev/null; then
+          curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+          unzip -q /tmp/awscliv2.zip -d /tmp
+          sudo /tmp/aws/install
+        fi
+        aws --version
+
+    - name: Upload off-site copy (S3-compatible)
+      if: inputs.s3_bucket != ''
+      shell: bash
+      env:
+        ARTIFACT_PATH: ${{ steps.backup.outputs.artifact_path }}
+        S3_BUCKET: ${{ inputs.s3_bucket }}
+        S3_ENDPOINT: ${{ inputs.s3_endpoint }}
+        S3_REGION: ${{ inputs.s3_region }}
+        S3_PREFIX: ${{ inputs.s3_prefix }}
+        AWS_ACCESS_KEY_ID: ${{ inputs.s3_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.s3_secret_access_key }}
+      run: bash "$GITHUB_ACTION_PATH/../scripts/upload-s3.sh"
