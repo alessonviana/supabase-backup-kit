@@ -36,6 +36,13 @@ mask "$AWS_SECRET_ACCESS_KEY"
 export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 export AWS_DEFAULT_REGION="${S3_REGION:-auto}"
 
+# A bucket name containing a dot breaks virtual-hosted-style TLS: the request host
+# becomes "<bucket>.s3.<region>...", which the provider's wildcard cert (one label)
+# cannot match. Force path-style addressing for such buckets so they work.
+case "$S3_BUCKET" in
+  *.*) aws configure set default.s3.addressing_style path ;;
+esac
+
 endpoint_args=()
 [ -n "${S3_ENDPOINT:-}" ] && endpoint_args=(--endpoint-url "$S3_ENDPOINT")
 
