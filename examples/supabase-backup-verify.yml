@@ -59,4 +59,5 @@ jobs:
           pg_url:          postgresql://postgres:postgres@localhost:5432/verify
           # Driven by repository Variables, with defaults if unset.
           expected_tables: ${{ vars.VERIFY_EXPECTED_TABLES || 'sales products' }}   # <-- edit default
-          nonempty_tables: ${{ vars.VERIFY_NONEMPTY_TABLES || '' }}
+          nonempty_tables: ${{ vars.VERIFY_NONEMPTY_TABLES || '' }}                 # <-- set a table that always has rows
+          max_age_hours:   ${{ vars.VERIFY_MAX_AGE_HOURS || '48' }}

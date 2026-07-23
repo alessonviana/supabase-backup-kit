@@ -19,6 +19,10 @@ inputs:
     description: "Optional subset that MUST have at least one row."
     required: false
     default: ""
+  max_age_hours:
+    description: "Fail if the newest backup is older than this many hours."
+    required: false
+    default: "48"
 
 runs:
   using: "composite"
@@ -37,4 +41,5 @@ runs:
         PG_URL: ${{ inputs.pg_url }}
         EXPECTED_TABLES: ${{ inputs.expected_tables }}
         NONEMPTY_TABLES: ${{ inputs.nonempty_tables }}
+        MAX_AGE_HOURS: ${{ inputs.max_age_hours }}
       run: bash "$GITHUB_ACTION_PATH/../scripts/verify.sh"

@@ -10,6 +10,7 @@
 #   AGE_IDENTITY / AGE_IDENTITY_FILE
 # Optional:
 #   NONEMPTY_TABLES   Subset that MUST have >= 1 row.
+#   MAX_AGE_HOURS     Fail if the newest backup is older than this (default 48).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh disable=SC1091
@@ -37,17 +38,50 @@ log "Decrypting backup..."
 age -d -i "$idfile" "$BACKUP_FILE" | gunzip > "$sql"
 [ -s "$sql" ] || die "decrypted SQL is empty"
 
+norm() { printf '%s' "$1" | tr ',' ' '; }
+fail=0
+
+# Freshness. The filename ends with -<UTC timestamp>.sql.gz.age, e.g.
+# my-project-20260721T084923Z.sql.gz.age. Fail if the newest backup is stale, which
+# would mean the daily backup pipeline has stopped producing artifacts.
+max_age_hours="${MAX_AGE_HOURS:-48}"
+ts_raw="$(basename "$BACKUP_FILE" | grep -oE '[0-9]{8}T[0-9]{6}Z' | tail -1 || true)"
+if [ -n "$ts_raw" ]; then
+  fmt="${ts_raw:0:4}-${ts_raw:4:2}-${ts_raw:6:2} ${ts_raw:9:2}:${ts_raw:11:2}:${ts_raw:13:2} UTC"
+  bts="$(date -u -d "$fmt" +%s 2>/dev/null || true)"
+  if [ -n "$bts" ]; then
+    age_h=$(( ( $(date -u +%s) - bts ) / 3600 ))
+    if [ "$age_h" -gt "$max_age_hours" ]; then
+      log "STALE backup: newest is ${age_h}h old (> ${max_age_hours}h). Is the daily backup running?"
+      fail=1
+    else
+      log "Freshness ok: backup is ${age_h}h old (<= ${max_age_hours}h)"
+    fi
+  fi
+else
+  log "WARN: could not parse timestamp from filename; skipping freshness check"
+fi
+
 log "Bootstrapping Supabase-like roles/extensions in ephemeral DB..."
 psql "$PG_URL" -v ON_ERROR_STOP=1 -f "$HERE/bootstrap-roles.sql"
 
 # Best-effort restore. Supabase dumps carry managed-environment noise (extensions,
-# roles, comments) that may not apply cleanly to a vanilla Postgres. We do NOT abort
-# on those; the smoke checks below (tables exist + have rows) are the real assertions.
-log "Restoring backup into ephemeral DB (best-effort; smoke checks decide)..."
-psql "$PG_URL" -v ON_ERROR_STOP=0 -f "$sql"
+# roles, publications, comments) that may not apply to a vanilla Postgres, so we do
+# NOT abort on those. BUT we DO fail if any error touches YOUR data (the public
+# schema or an expected table). The smoke checks below are the remaining assertions.
+restore_log="$workdir/restore.log"
+log "Restoring backup (best-effort; errors on your data still fail)..."
+psql "$PG_URL" -v ON_ERROR_STOP=0 -f "$sql" 2>&1 | tee "$restore_log"
 
-norm() { printf '%s' "$1" | tr ',' ' '; }
-fail=0
+data_pat='public'
+for t in $(norm "$EXPECTED_TABLES"); do
+  [ -n "$t" ] && data_pat="$data_pat|$t"
+done
+if grep -E 'ERROR:' "$restore_log" | grep -Eq "($data_pat)"; then
+  log "Restore produced error(s) touching your data (public schema / expected tables):"
+  grep -E 'ERROR:' "$restore_log" | grep -E "($data_pat)" >&2 || true
+  fail=1
+fi
 
 log "Checking expected tables exist..."
 for t in $(norm "$EXPECTED_TABLES"); do
